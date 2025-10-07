@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -86,17 +87,15 @@ func (s *JokeStore) Random() (*Joke, error) {
 	if n == 0 {
 		return nil, errors.New("no jokes available")
 	}
-	// collect keys
 	keys := make([]int64, 0, n)
 	for k := range s.jokes {
 		keys = append(keys, k)
 	}
-	// pick random index
 	idx := s.r.Intn(n)
 	return s.jokes[keys[idx]], nil
 }
 
-// JSON helpers
+// JSON helper
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -109,8 +108,13 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// silence browser favicon requests
+	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
 	// GET /jokes -> list
-	// POST /jokes -> create { "content": "...", "author": "..." }
+	// POST /jokes -> create
 	mux.HandleFunc("/jokes", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -151,9 +155,8 @@ func main() {
 		writeJSON(w, http.StatusOK, j)
 	})
 
-	// GET /jokes/{id}  DELETE /jokes/{id}
+	// GET /jokes/{id} or DELETE /jokes/{id}
 	mux.HandleFunc("/jokes/", func(w http.ResponseWriter, r *http.Request) {
-		// trim trailing slash and split
 		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 		if len(parts) != 2 {
 			http.Error(w, "invalid path", http.StatusBadRequest)
@@ -184,7 +187,13 @@ func main() {
 		}
 	})
 
-	addr := ":8081"
+	// configurable port (default 8081)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8081"
+	}
+	addr := ":" + port
+
 	fmt.Printf("Joke API running at %s\n", addr)
 	log.Fatal(http.ListenAndServe(addr, loggingMiddleware(mux)))
 }
