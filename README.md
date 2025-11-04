@@ -155,6 +155,6 @@ curl -X DELETE http://localhost:8081/jokes/3 -v
 
 ### 🏁 License
 
-This project is licensed under the [MIT License](LICENSE) © 2025 EternalKnight002
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
